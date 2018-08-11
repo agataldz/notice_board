@@ -3,14 +3,15 @@ import datetime
 from flask import Flask, redirect, render_template, request, session, url_for
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
+from forms import LoginForm, MessageForm, PostForm, RegistrationForm
 from sqlalchemy import ForeignKey, or_
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from forms import LoginForm, PostForm, RegistrationForm, MessageForm
-
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:postgres@localhost/your_db_name"
+app.config[
+    "SQLALCHEMY_DATABASE_URI"
+] = "postgresql://postgres:postgres@localhost/your_db_name"
 app.config["SECRET_KEY"] = "very secret key"
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -34,7 +35,7 @@ class Post(db.Model):
 
     author_id = db.Column(db.Integer, ForeignKey("user.id"))
 
-    author = db.relationship('User', foreign_keys=author_id)
+    author = db.relationship("User", foreign_keys=author_id)
     date = db.Column(db.DateTime)
 
     def __init__(self, content, author, date):
@@ -50,8 +51,8 @@ class Message(db.Model):
     sender_id = db.Column(db.Integer, ForeignKey("user.id"))
     recipient_id = db.Column(db.Integer, ForeignKey("user.id"))
 
-    sender = db.relationship('User', foreign_keys=sender_id)
-    recipient = db.relationship('User', foreign_keys=recipient_id)
+    sender = db.relationship("User", foreign_keys=sender_id)
+    recipient = db.relationship("User", foreign_keys=recipient_id)
 
     def __init__(self, message, sender, recipient):
         self.message = message
@@ -71,7 +72,7 @@ def user_page(username):
         user = User.query.filter(User.name == username).first()
         posts = Post.query.filter(Post.author == user).all()
         return render_template("index.html", posts=posts)
-    return render_template(url_for('login'))
+    return render_template(url_for("login"))
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -135,21 +136,25 @@ def send_message():
     if session.get("logged_in") is True:
         if request.method == "POST":
             recipient = User.query.filter(User.name == form.recipient.data).first()
-            sender = User.query.filter(User.name == session['username']).first()
-            message = Message(message=form.message.data, sender=sender, recipient=recipient)
+            sender = User.query.filter(User.name == session["username"]).first()
+            message = Message(
+                message=form.message.data, sender=sender, recipient=recipient
+            )
             db.session.add(message)
             db.session.commit()
             return redirect(url_for("messages"))
         else:
-            return render_template('send_message.html', form=form)
-    return redirect(url_for('login'))
+            return render_template("send_message.html", form=form)
+    return redirect(url_for("login"))
 
 
 @app.route("/messages/<username>")
 def messages(username):
     sender = User.query.filter(User.name == username).first()
     recipient = User.query.filter(User.name == username).first()
-    msg = Message.query.filter(or_(Message.sender == sender, Message.recipient == recipient)).all()
+    msg = Message.query.filter(
+        or_(Message.sender == sender, Message.recipient == recipient)
+    ).all()
     return render_template("message_box.html", messages=msg)
 
 
@@ -159,7 +164,7 @@ def inbox(username):
         recipient = User.query.filter(User.name == username).first()
         msg = Message.query.filter(Message.recipient == recipient).all()
         return render_template("messages.html", messages=msg)
-    return redirect(url_for('login'))
+    return redirect(url_for("login"))
 
 
 @app.route("/outbox/<username>")
