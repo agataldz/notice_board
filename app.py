@@ -18,6 +18,7 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 
+“””Models“””
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True, nullable=False)
     name = db.Column(db.String, nullable=False, unique=True)
@@ -61,6 +62,7 @@ class Message(db.Model):
         self.recipient = recipient
 
 
+“””Helpers“””
 def login_required(f):
     @wraps(f)
     def wrap(*args, **kwargs):
@@ -77,6 +79,7 @@ def db_commit(obj):
     db.session.commit()
 
 
+“””Views“””
 @app.route("/")
 def index():
     posts = Post.query.all()
@@ -150,7 +153,11 @@ def send_message():
         username = session["username"]
         recipient = User.query.filter(User.name == form.recipient.data).first()
         sender = User.query.filter(User.name == username).first()
-        message = Message(message=form.message.data, sender=sender, recipient=recipient)
+        message = Message(
+            message=form.message.data, 
+            sender=sender, 
+            recipient=recipient
+        )
         db_commit(message)
         return redirect(url_for("messages", username=username))
     else:
@@ -170,11 +177,9 @@ def messages(username):
 @app.route("/inbox/<username>")
 @login_required
 def inbox(username):
-    if session.get("logged_in") is True:
-        recipient = User.query.filter(User.name == username).first()
-        msg = Message.query.filter(Message.recipient == recipient).all()
-        return render_template("messages.html", messages=msg)
-    return redirect(url_for("login"))
+    recipient = User.query.filter(User.name == username).first()
+    msg = Message.query.filter(Message.recipient == recipient).all()
+    return render_template("messages.html", messages=msg)
 
 
 @app.route("/outbox/<username>")
