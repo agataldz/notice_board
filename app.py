@@ -1,6 +1,7 @@
 import datetime
+from functools import wraps
 
-from flask import Flask, redirect, render_template, request, session, url_for
+from flask import Flask, redirect, render_template, request, session, url_for, flash
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from forms import LoginForm, MessageForm, PostForm, RegistrationForm
@@ -9,9 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
-app.config[
-    "SQLALCHEMY_DATABASE_URI"
-] = "postgresql://postgres:postgres@localhost/your_db_name"
+app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:postgres@localhost/blog"
 app.config["SECRET_KEY"] = "very secret key"
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -60,6 +59,23 @@ class Message(db.Model):
         self.recipient = recipient
 
 
+def login_required(f):
+    @wraps(f)
+    def wrap(*args, **kwargs):
+        if session.get("logged_in") is True:
+            return f(*args, **kwargs)
+        else:
+            flash("You need to login first")
+            return redirect(url_for("login"))
+
+    return wrap
+
+
+def db_commit(obj):
+    db.session.add(obj)
+    db.session.commit()
+
+
 @app.route("/")
 def index():
     posts = Post.query.all()
@@ -67,12 +83,11 @@ def index():
 
 
 @app.route("/<username>")
-def user_page(username):
-    if session.get("logged_in") is True:
-        user = User.query.filter(User.name == username).first()
-        posts = Post.query.filter(Post.author == user).all()
-        return render_template("index.html", posts=posts)
-    return render_template(url_for("login"))
+@login_required
+def user_page(username: str):
+    user = User.query.filter(User.name == username).first()
+    posts = Post.query.filter(Post.author == user).all()
+    return render_template("index.html", posts=posts)
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -84,8 +99,7 @@ def register():
             user = User(
                 name=form.name.data, email=form.email.data, password=form.password.data
             )
-            db.session.add(user)
-            db.session.commit()
+            db_commit(user)
             return redirect(url_for("index"))
         except IntegrityError:
             message = "User already exist "
@@ -114,41 +128,36 @@ def logout():
 
 
 @app.route("/add_post", methods=["GET", "POST"])
+@login_required
 def add_post():
-    if session.get("logged_in") is True:
-        form = PostForm(request.form)
-        if request.method == "POST":
-            user = User.query.filter(User.name == session["username"]).first()
-            post = Post(
-                content=form.content.data, author=user, date=datetime.datetime.now()
-            )
-            db.session.add(post)
-            db.session.commit()
-            return redirect(url_for("index"))
-        return render_template("new_post.html", form=form)
-    else:
-        return redirect(url_for("login"))
+    form = PostForm(request.form)
+    if request.method == "POST":
+        user = User.query.filter(User.name == session["username"]).first()
+        post = Post(
+            content=form.content.data, author=user, date=datetime.datetime.now()
+        )
+        db_commit(post)
+        return redirect(url_for("index"))
+    return render_template("new_post.html", form=form)
 
 
 @app.route("/send_message", methods=["GET", "POST"])
+@login_required
 def send_message():
     form = MessageForm(request.form)
-    if session.get("logged_in") is True:
-        if request.method == "POST":
-            recipient = User.query.filter(User.name == form.recipient.data).first()
-            sender = User.query.filter(User.name == session["username"]).first()
-            message = Message(
-                message=form.message.data, sender=sender, recipient=recipient
-            )
-            db.session.add(message)
-            db.session.commit()
-            return redirect(url_for("messages"))
-        else:
-            return render_template("send_message.html", form=form)
-    return redirect(url_for("login"))
+    if request.method == "POST":
+        username = session["username"]
+        recipient = User.query.filter(User.name == form.recipient.data).first()
+        sender = User.query.filter(User.name == username).first()
+        message = Message(message=form.message.data, sender=sender, recipient=recipient)
+        db_commit(message)
+        return redirect(url_for("messages", username=username))
+    else:
+        return render_template("send_message.html", form=form)
 
 
 @app.route("/messages/<username>")
+@login_required
 def messages(username):
     user = User.query.filter(User.name == username).first()
     msg = Message.query.filter(
@@ -158,6 +167,7 @@ def messages(username):
 
 
 @app.route("/inbox/<username>")
+@login_required
 def inbox(username):
     if session.get("logged_in") is True:
         recipient = User.query.filter(User.name == username).first()
@@ -167,6 +177,7 @@ def inbox(username):
 
 
 @app.route("/outbox/<username>")
+@login_required
 def outbox(username):
     sender = User.query.filter(User.name == username).first()
     msg = Message.query.filter(Message.sender == sender).all()
