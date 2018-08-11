@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}MessageBox{% endblock %}
+{% block content %}
+    <p><a href="/inbox/{{ session.username }}">Inbox</a>
+    <a href="/outbox/{{ session.username }}">Outbox</a></p>
+    <H3>Messages:</H3>
+    {% for message in messages %}
+        <p>Message: {{ message.message }}
+        <br>Sender: {{ message.sender.name }}
+        <br>Recipient: {{ message.recipient.name }}</p>
+    {% endfor %}
+{% endblock %}

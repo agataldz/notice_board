@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Index{% endblock %}
+{% block content %}
+    {% for post in posts %}
+        <p>{{ post.content }}
+        <br>{{ post.date }}
+        <br>{{ post.author.name }}
+        </p>
+    {% endfor %}
+{% endblock %}

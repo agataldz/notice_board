@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>{% block title %}{% endblock %} - My Webpage</title>
+</head>
+<body>
+    <a href="/">Index</a>
+{% if session.logged_in == True %}
+    <a href="/{{ session.username }}">Your posts</a>
+    <a href="/messages/{{ session.username }}">Messages</a>
+    <a href="/send_message">Send message</a>
+    <a href="/add_post">Add post</a>
+    <a href="/logout">Logout</a>
+{% else %}
+    <a href="/login">Login</a>
+    <a href="/register">Register</a>
+{% endif %}
+{% block content %}
+{% endblock %}
+</body>
+</html>

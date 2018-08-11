@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Sign up{% endblock %}
+{% block content %}
+    {% from "_formhelpers.html" import render_field %}
+    <form method=post>
+      <dl>
+        {{ render_field(form.recipient) }}
+        {{ render_field(form.message) }}
+      </dl>
+      <p><input type=submit value=Send>
+    </form>
+{% endblock %}
