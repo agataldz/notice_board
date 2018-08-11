@@ -150,10 +150,9 @@ def send_message():
 
 @app.route("/messages/<username>")
 def messages(username):
-    sender = User.query.filter(User.name == username).first()
-    recipient = User.query.filter(User.name == username).first()
+    user = User.query.filter(User.name == username).first()
     msg = Message.query.filter(
-        or_(Message.sender == sender, Message.recipient == recipient)
+        or_(Message.sender == user, Message.recipient == user)
     ).all()
     return render_template("message_box.html", messages=msg)
 
