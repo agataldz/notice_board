@@ -10,7 +10,9 @@ from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:postgres@localhost/blog"
+app.config[
+    "SQLALCHEMY_DATABASE_URI"
+] = "postgresql://your_username:your_password@localhost/your_db_name"
 app.config["SECRET_KEY"] = "very secret key"
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -67,7 +69,6 @@ def login_required(f):
         else:
             flash("You need to login first")
             return redirect(url_for("login"))
-
     return wrap
 
 
